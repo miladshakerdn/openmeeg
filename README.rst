@@ -1,4 +1,4 @@
-|Travis|_ |AppVeyor|_ |CodeCov|_ |condaVersion|_ |gitter|_
+|Travis|_ |AppVeyor|_ |lgtm|_ |CodeCov|_ |condaVersion|_ |gitter|_
 
 .. |Travis| image:: https://api.travis-ci.org/openmeeg/openmeeg.svg?branch=master
 .. _Travis: https://travis-ci.org/openmeeg/openmeeg/branches
@@ -14,6 +14,9 @@
 
 .. |gitter| image:: https://badges.gitter.im/openmeeg/openmeeg.svg
 .. _gitter: https://gitter.im/openmeeg/openmeeg
+
+.. |lgtm| image:: https://img.shields.io/lgtm/grade/cpp/g/openmeeg/openmeeg.svg?logo=lgtm&logoWidth=18
+.. _lgtm: https://lgtm.com/projects/g/openmeeg/openmeeg/context:cpp
 
 OpenMEEG: forward problems solver in the field of EEG and MEG
 =============================================================
@@ -90,22 +93,15 @@ On Fedora and Centos::
 
     sudo yum install python-devel python2-numpy swig vtk-devel doxygen cgal-devel
 
-On Mac OS X, you'll need `CMake <http://www.cmake.org>`_. We recommend you install it with `Homebrew <http://brew.sh/>`_ using::
+On Mac OS X, we recommend you install it with `Homebrew <http://brew.sh/>`_ using::
 
-    $ brew install cmake
+    $ brew install https://raw.githubusercontent.com/openmeeg/openmeeg/master/openmeeg.rb
 
-To configure your environment with Homebrew install the following packages with the brew command::
+To install with Homebrew the current development version use::
 
-    $ brew install hdf5 libmatio
-    $ brew install openblas && brew link openblas --force
+    $ brew install https://raw.githubusercontent.com/openmeeg/openmeeg/master/openmeeg.rb --devel
 
-    *optionally*::
-
-    $ brew install vtk  # to have support for VTK file format
-    $ brew install Doxygen  # to build the documentation
-    $ brew install --with-qt5 cgal  # to use CGAL meshing tools
-
-Then from a terminal::
+To install OpenMEEG from source in a terminal::
 
     $ git clone https://github.com/openmeeg/openmeeg.git
 
@@ -120,7 +116,7 @@ then::
 
 You will need to define more CMake variables if you want the support for:
 
-- Python wrapping, add "-DENABLE_PYTHON=ON".
+- Python wrapping, add "-DENABLE_PYTHON=ON" (default version is 3, add "-DPYTHON_VERSION=2" to use python2)
 
 - VTK file format, add "-DUSE_VTK=ON".
 

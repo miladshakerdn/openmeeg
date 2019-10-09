@@ -61,7 +61,7 @@ namespace OpenMEEG {
      *  in the first column of the file (it has to contains at least one character to be considered as label)
      *  the file can have the shape of (neglecting if present the first, label column):
      *  <ul>
-     *    
+     *
      *  <li> 1 line per sensor and 3 columns (EEG sensors OR MEG sensors without orientation OR EIT punctual patches)
      *        <ul TYPE="circle">
      *        <li> the 1st, 2nd and 3rd columns are respectively position coordinates x, y, z of sensor  </li>
@@ -97,6 +97,9 @@ namespace OpenMEEG {
         Sensors(const char* filename): m_geo(NULL) { this->load(filename,'t'); } /*!< Construct from file. Option 't' is for text file.*/
         Sensors(const char* filename, const Geometry& g): m_geo(&g) { this->load(filename,'t'); }; /*!< Construct from file and geometry (for EIT). */
 
+        Sensors(const Strings &labels, const Matrix& positions, const Matrix& orientations, const Vector &weights, const Vector &radii);
+        Sensors(const Strings &labels, const Matrix& positions, const Matrix& orientations, const Vector &weights, const Vector &radii, const Geometry &g);
+
         void load(const char* filename, char filetype = 't' ); /*!< Load sensors from file. Filetype is 't' for text file or 'b' for binary file. */
         void load(std::istream &in); /*!< Load description file of sensors from stream. */
         void save(const char* filename);
@@ -122,8 +125,8 @@ namespace OpenMEEG {
         void setPosition(size_t idx, Vector& pos); /*!< Set the position (3D point) of the integration point i. */
         void setOrientation(size_t idx, Vector& orient); /*!< Set the orientation (3D point) of the integration point i. */
 
-        bool hasSensor(std::string name);
-        size_t getSensorIdx(std::string name);
+        bool hasSensor(std::string name) const;
+        size_t getSensorIdx(std::string name) const;
         Triangles getInjectionTriangles(size_t idx) const { om_assert(idx < m_triangles.size()); return m_triangles[idx]; } /*!< For EIT, get triangles under the current injection electrode. */
 
         Vector getRadii()   const { return m_radii; }
@@ -162,4 +165,27 @@ namespace OpenMEEG {
     inline void Sensors::setOrientation(size_t idx, Vector& orient) {
         return m_orientations.setlin(idx,orient);
     }
+
+    inline Sensors::Sensors(const Strings &labels, const Matrix& positions, const Matrix& orientations, const Vector &weights, const Vector &radii) :
+        m_nb(labels.size()), m_names(labels), m_positions(positions), m_orientations(orientations),m_weights(weights), m_radii(radii)
+    {
+        std::cout << "const" << labels.size() << std::endl;
+        m_pointSensorIdx = std::vector<size_t>(labels.size());
+        for ( std::size_t i = 0; i < labels.size(); ++i) {
+            m_pointSensorIdx[i] = getSensorIdx(m_names[i]);
+        }
+    }
+
+    inline Sensors::Sensors(const Strings &labels, const Matrix& positions, const Matrix& orientations, const Vector &weights, const Vector &radii, const Geometry &g) :
+        m_nb(labels.size()), m_names(labels), m_positions(positions), m_orientations(orientations),m_weights(weights), m_radii(radii), m_geo(&g)
+    {
+        // find triangles on which to inject the currents and compute weights
+        findInjectionTriangles();
+
+        m_pointSensorIdx = std::vector<size_t>(labels.size());
+        for ( std::size_t i = 0; i < labels.size(); ++i) {
+            m_pointSensorIdx[i] = getSensorIdx(m_names[i]);
+        }
+    }
+
 }
