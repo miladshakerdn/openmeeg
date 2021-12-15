@@ -38,24 +38,24 @@ knowledge of the CeCILL-B license and that you accept its terms.
 */
 
 #include <mesh.h>
-#include "options.h"
+#include "commandline.h"
 #include <cgal_lib.h>
 
 using namespace OpenMEEG;
 
 int main(int argc, char **argv) {
-    command_usage("Create a BEM mesh from either an implicit function: sphere, hemisphere, ...:");
-    const double sphere_radius     = command_option("-r", 0.0, "radius of the sphere");
-    const double hemisphere_radius = command_option("-hr",0.0, "radius of the hemisphere");
-    const double radius_bound      = command_option("-fs",1e-1,"facet radius bound of elements");
-    const double distance_bound    = command_option("-fd",1e-1,"facet distance bound to the input surface");
-    // const unsigned init_points  = command_option("-ip", 10, "initial number of points (for the hemisphere)");
-    const char * output_filename   = command_option("-o",nullptr,"Output Mesh");
+    const CommandLine cmd(argc,argv,"Create a BEM mesh from either an implicit function: sphere, hemisphere, ...:");
+    const double sphere_radius         = cmd.option("-r", 0.0, "radius of the sphere");
+    const double hemisphere_radius     = cmd.option("-hr",0.0, "radius of the hemisphere");
+    const double radius_bound          = cmd.option("-fs",1e-1,"facet radius bound of elements");
+    const double distance_bound        = cmd.option("-fd",1e-1,"facet distance bound to the input surface");
+    // const unsigned init_points      = cmd.option("-ip", 10, "initial number of points (for the hemisphere)");
+    const std::string& output_filename = cmd.option("-o",std::string(),"Output Mesh");
 
-    if (command_option("-h",nullptr,nullptr))
+    if (cmd.help_mode())
         return 0;
 
-    if (output_filename==nullptr) {
+    if (output_filename=="") {
         std::cerr << "Set an output filename" << std::endl;
         return 0;
     }

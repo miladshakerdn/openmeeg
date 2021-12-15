@@ -49,11 +49,15 @@ add_executable(om_mesh_to_dip mesh_to_dip.cpp)
 target_link_libraries(om_mesh_to_dip OpenMEEG ${VTK_LIBRARIES})
 
 if (USE_CGAL)
+
+    find_package(CGAL REQUIRED COMPONENTS Core ImageIO)
+
     set(OM_CGAL_TARGETS cgal_mesh_function)
     set(OM_CGAL_SOURCES cgal_lib_function.cpp)
     include_directories(.)
 
     if (CGAL_ImageIO_FOUND) # these are tools handling images (.inr format only for the moment!)
+        add_definitions(-DCGAL_ImageIO)
         list(APPEND OM_CGAL_TARGETS "cgal_mesh_3Dlabeled_image" "cgal_mesh_3Dlevelset_image")
         list(APPEND OM_CGAL_EXEC om_${target})
         list(APPEND OM_CGAL_SOURCES cgal_lib_image.cpp)

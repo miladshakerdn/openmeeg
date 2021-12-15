@@ -47,65 +47,62 @@ knowledge of the CeCILL-B license and that you accept its terms.
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_length_cost.h>
 #include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Midpoint_placement.h>
 
-// typedef to mesh
-// Domain
-typedef CGAL::Polyhedral_mesh_domain_3<Polyhedron, K> Mesh_domainP;
-// Triangulation
-typedef CGAL::Mesh_triangulation_3<Mesh_domainP>::type TrP;
-typedef CGAL::Mesh_complex_3_in_triangulation_3<TrP> C3t3P;
-// Criteria
-typedef CGAL::Mesh_criteria_3<TrP> Mesh_criteriaP;
-
-// Sizing field
-struct Planes
-{
-    typedef ::FT FT;
-
-    typedef Mesh_domainP::Index Index;
-
-    Planes(const OpenMEEG::Matrix &_mat, double _fs): mat(_mat), fs(_fs) {}
-
-    FT operator()(const Point_3& p, const int, const Index&) const
-    {
-        bool inside = true;
-        for ( unsigned i = 0; i < mat.nlin(); ++i) {
-            OpenMEEG::Vect3 v(p.x()-mat(i,0), p.y() - mat(i,1), p.z() - mat(i,2));
-            if ( (v(0)*mat(i,3)+v(1)*mat(i,4)+v(2)*mat(i,5) < 0) ) {
-                inside = false;
-            }
-        }
-        return (inside)?fs*1./3.:fs;
-    }
-    const OpenMEEG::Matrix mat;
-    double fs;
-};
-
-struct Spheres
-{
-    typedef ::FT FT;
-    typedef Mesh_domainP::Index Index;
-
-    Spheres(const OpenMEEG::Matrix &_mat, double _fs): mat(_mat), fs(_fs) {}
-
-    FT operator()(const Point_3& p, const int, const Index&) const
-    {
-        bool inside = false;
-        for ( unsigned i = 0; i < mat.nlin(); ++i) {
-            OpenMEEG::Vect3 v(p.x()-mat(i,0), p.y() - mat(i,1), p.z() - mat(i,2));
-            if ( v.norm() < mat(i,3) ) {
-                inside = true;
-            }
-        }
-        return (inside)?fs*1./3.:fs;
-    }
-    const OpenMEEG::Matrix mat;
-    double fs;
-};
-
-// To avoid verbose function and named parameters call
-using namespace CGAL::parameters;
-
 namespace OpenMEEG {
+
+    // typedef to mesh
+    // Domain
+    typedef CGAL::Polyhedral_mesh_domain_3<Polyhedron,K> Mesh_domainP;
+    // Triangulation
+    typedef CGAL::Mesh_triangulation_3<Mesh_domainP>::type TrP;
+    typedef CGAL::Mesh_complex_3_in_triangulation_3<TrP> C3t3P;
+    // Criteria
+    typedef CGAL::Mesh_criteria_3<TrP> Mesh_criteriaP;
+
+    // Sizing field
+    struct Planes
+    {
+        typedef Mesh_domainP::Index Index;
+
+        Planes(const OpenMEEG::Matrix &_mat, double _fs): mat(_mat), fs(_fs) {}
+
+        FT operator()(const Point_3& p, const int, const Index&) const
+        {
+            bool inside = true;
+            for ( unsigned i = 0; i < mat.nlin(); ++i) {
+                OpenMEEG::Vect3 v(p.x()-mat(i,0), p.y() - mat(i,1), p.z() - mat(i,2));
+                if ( (v(0)*mat(i,3)+v(1)*mat(i,4)+v(2)*mat(i,5) < 0) ) {
+                    inside = false;
+                }
+            }
+            return (inside)?fs*1./3.:fs;
+        }
+        const OpenMEEG::Matrix mat;
+        double fs;
+    };
+
+    struct Spheres
+    {
+        typedef Mesh_domainP::Index Index;
+
+        Spheres(const OpenMEEG::Matrix &_mat, double _fs): mat(_mat), fs(_fs) {}
+
+        FT operator()(const Point_3& p, const int, const Index&) const
+        {
+            bool inside = false;
+            for (unsigned i=0; i<mat.nlin(); ++i) {
+                OpenMEEG::Vect3 v(p.x()-mat(i,0),p.y()-mat(i,1),p.z()-mat(i,2));
+                if (v.norm()<mat(i,3)) {
+                    inside = true;
+                }
+            }
+            return (inside)?fs*1./3.:fs;
+        }
+        const OpenMEEG::Matrix mat;
+        double fs;
+    };
+
+    // To avoid verbose function and named parameters call
+    using namespace CGAL::parameters;
 
     class Build_Mesh2Polyhedron : public CGAL::Modifier_base<HDS> {
 
@@ -117,18 +114,18 @@ namespace OpenMEEG {
 
         void operator()(HDS& target) {
             CGAL::Polyhedron_incremental_builder_3<HDS> builder(target, true);
-            builder.begin_surface(m->nb_vertices(), m->nb_triangles(), 6*m->nb_vertices()-12);
-            std::map<const Vertex *, unsigned> map;
+            builder.begin_surface(m->vertices().size(),m->triangles().size(),6*m->vertices().size()-12);
+            std::map<const Vertex*,unsigned> map;
             unsigned i = 0;
-            for (Mesh::const_vertex_iterator vit = m->vertex_begin(); vit != m->vertex_end(); ++vit, ++i) {
+            for (auto vit = m->vertices().begin(); vit!=m->vertices().end(); ++vit,++i) {
                 builder.add_vertex(Polyhedron::Point_3((*vit)->x(), (*vit)->y(), (*vit)->z()));
                 map[*vit] = i;
             }
-            for (Mesh::const_iterator tit = m->begin(); tit != m->end(); ++tit) {
+            for (const auto& triangle : m->triangles()) {
                 builder.begin_facet();
-                builder.add_vertex_to_facet(map[&(tit->s1())]);
-                builder.add_vertex_to_facet(map[&(tit->s2())]);
-                builder.add_vertex_to_facet(map[&(tit->s3())]);
+                builder.add_vertex_to_facet(map[&(triangle.vertex(0))]);
+                builder.add_vertex_to_facet(map[&(triangle.vertex(1))]);
+                builder.add_vertex_to_facet(map[&(triangle.vertex(2))]);
                 builder.end_facet();
             }
             builder.end_surface();
@@ -145,22 +142,22 @@ namespace OpenMEEG {
 
     // refine a mesh
 
-    Mesh cgal_refine(const Mesh& m_in, double radius_bound, double distance_bound, const char* sizing_field) {
+    Mesh cgal_refine(const Mesh& m_in,const double radius_bound,const double distance_bound,const std::string& sizing_field) {
         // Mesh criteria
-        Mesh_criteriaP * criteria;
-        if ( sizing_field ) {
+        Mesh_criteriaP* criteria;
+        if (sizing_field!="") {
             Matrix field(sizing_field);
-            if ( field.ncol() == 6 ) {
-                Planes planes(field, radius_bound);
-                criteria = new Mesh_criteriaP(facet_angle=30, facet_size=planes, facet_distance=distance_bound);
-            } else if ( field.ncol() == 4 ) {
-                Spheres spheres(field, radius_bound);
-                criteria = new Mesh_criteriaP(facet_angle=30, facet_size=spheres, facet_distance=distance_bound);
+            if (field.ncol()==6) {
+                Planes planes(field,radius_bound);
+                criteria = new Mesh_criteriaP(facet_angle=30,facet_size=planes,facet_distance=distance_bound);
+            } else if (field.ncol()==4) {
+                Spheres spheres(field,radius_bound);
+                criteria = new Mesh_criteriaP(facet_angle=30,facet_size=spheres,facet_distance=distance_bound);
             } else {
                 std::cerr << "Error: file should contain either 4 or 6 columns" << std::endl;
             }
         } else {
-            criteria = new Mesh_criteriaP(facet_angle=30, facet_size=radius_bound, facet_distance=distance_bound);
+            criteria = new Mesh_criteriaP(facet_angle=30,facet_size=radius_bound,facet_distance=distance_bound);
         }
 
         // Create input polyhedron
@@ -172,15 +169,13 @@ namespace OpenMEEG {
         C3t3P c3t3;
         unsigned i = 0;
         unsigned nb_initial_points = 5;
-        for ( Polyhedron::Vertex_iterator it = polyhedron.vertices_begin(); it != polyhedron.vertices_end(); it++, i++) {
-            if ( i% (m_in.nb_vertices() / (1+nb_initial_points)) == 0 ) {
-                c3t3.triangulation().insert(it->point());
-            }
-        }
+        for (Polyhedron::Vertex_iterator it=polyhedron.vertices_begin(); it!=polyhedron.vertices_end(); it++,i++)
+            if (i%(m_in.vertices().size()/(1+nb_initial_points))==0)
+                c3t3.triangulation().insert(TrP::Weighted_point(it->point()));
         // Meshing
-        CGAL::refine_mesh_3(c3t3, domain, *criteria, no_exude(), no_perturb());
+        CGAL::refine_mesh_3(c3t3,domain,*criteria,no_exude(),no_perturb());
 
-        return CGAL_to_OM(c3t3);
+            return CGAL_to_OM(c3t3);
     }
 
     /// decimate safely a mesh
@@ -207,32 +202,31 @@ namespace OpenMEEG {
 
         unsigned inum = 0;
         // write the output mesh
-        Mesh m(polyhedron.size_of_vertices(), polyhedron.size_of_facets());
-        std::map< Polyhedron::Vertex_const_handle, unsigned> V;
-        for ( Polyhedron::Vertex_iterator vit = polyhedron.vertices_begin(); vit != polyhedron.vertices_end(); ++vit)
-        {
+        Mesh m(polyhedron.size_of_vertices(),polyhedron.size_of_facets());
+        std::map<Polyhedron::Vertex_const_handle,unsigned> V;
+        Vertices vertices;
+        for (Polyhedron::Vertex_iterator vit=polyhedron.vertices_begin(); vit!=polyhedron.vertices_end(); ++vit) {
             const Polyhedron::Vertex::Point& p = vit->point();
-            m.add_vertex(Vertex(CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.z())));
+            vertices.push_back(Vertex(CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.z())));
             V[vit] = inum++;
         }
+        m.geometry().add_vertices(vertices);
 
-        for ( Polyhedron::Facet_iterator fit = polyhedron.facets_begin(); fit != polyhedron.facets_end(); ++fit) {
+        for (Polyhedron::Facet_iterator fit=polyhedron.facets_begin(); fit!=polyhedron.facets_end(); ++fit) {
             Polyhedron::Facet::Halfedge_around_facet_circulator j = fit->facet_begin();
             // Facets in polyhedral surfaces are triangles.
-            CGAL_assertion( CGAL::circulator_size(j) == 3);
-            const int index1 = V[j->vertex()];
-            j++;
-            const int index2 = V[j->vertex()];
-            j++;
-            const int index3 = V[j->vertex()];
-            Triangle t(m.vertices()[index1], m.vertices()[index2], m.vertices()[index3]);
-            m.push_back(t);
+            CGAL_assertion(CGAL::circulator_size(j)==3);
+            TriangleIndices indices;
+            indices[0] = V[j++->vertex()];
+            indices[1] = V[j++->vertex()];
+            indices[2] = V[j++->vertex()];
+            m.add_triangle(indices);
         }
 
-        m.update();
+        m.update(true);
         m.correct_global_orientation();
 
-        std::cout << "Finished...\n" << r << " edges removed.\n" << m.nb_vertices() << " final nb_points.\n";
+        std::cout << "Finished...\n" << r << " edges removed.\n" << m.vertices().size() << " final nb_points.\n";
 
         return m;
     }
